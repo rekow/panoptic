@@ -5,7 +5,7 @@
  */
 
 var assert = require("assert"),
-  panoptic = require("../index.js"),
+  panoptic = require("../src/index.js"),
   equal = assert.equal;
 
 describe("Panopt module", function () {

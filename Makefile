@@ -21,12 +21,12 @@ build: test
 		--debug false \
 		--warning_level QUIET \
 		--summary_detail_level 1 \
-		--js $(THIS_DIR)/index.js \
+		--js $(THIS_DIR)/src/index.js \
 		--language_in ECMASCRIPT5 \
 		--formatting PRETTY_PRINT \
 		--compilation_level WHITESPACE_ONLY \
 		--js_output_file $(THIS_DIR)/dist/panoptic.js \
-		--common_js_entry_module $(THIS_DIR)/index.js \
+		--common_js_entry_module $(THIS_DIR)/src/index.js \
 		--output_wrapper '(function () {%output%}).call(this);'
 
 	@echo "Minifying dist package with closure compiler..."
@@ -34,10 +34,10 @@ build: test
 		--debug false \
 		--warning_level QUIET \
 		--summary_detail_level 1 \
-		--js $(THIS_DIR)/index.js \
+		--js $(THIS_DIR)/src/index.js \
 		--language_in ECMASCRIPT5 \
 		--compilation_level ADVANCED_OPTIMIZATIONS \
-		--common_js_entry_module $(THIS_DIR)/index.js \
+		--common_js_entry_module $(THIS_DIR)/src/index.js \
 		--js_output_file $(THIS_DIR)/dist/panoptic.min.js \
 		--output_wrapper '(function () {%output%}).call(this);' \
 		--use_types_for_optimization
