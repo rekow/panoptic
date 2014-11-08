@@ -1,0 +1,39 @@
+{
+  "name": "panoptic",
+  "description": "see all, do all. simple object keypath observers.",
+  "version": "0.0.1",
+  "license": "MIT",
+  "authors": [{
+    "name": "David Rekow",
+    "email": "d@davidrekow.com",
+    "url": "http://davidrekow.com"
+  }],
+  "keywords": [
+    "panoptic",
+    "observe",
+    "observer",
+    "observers",
+    "observe object",
+    "watch",
+    "watcher",
+    "watchers",
+    "watch object",
+    "watch property",
+    "data",
+    "bind",
+    "databind",
+    "data bind",
+    "databinding",
+    "data binding",
+    "property binding",
+    "bind data",
+    "bind property"
+  ],
+  "homepage": "https://github.com/davidrekow/panoptic",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidrekow/panoptic.git"
+  },
+  "main": "index.js",
+  "ignore": ["test/reports"]
+}
