@@ -100,6 +100,42 @@ describe("Panopt module", function () {
     equal(observed.i.j.k, 8, "new i.j.k is 8");
   });
 
+  it("multisets a flat namespaced object", function () {
+    observed.set({
+      'b.c': 3,
+      'b.d': "4",
+      'b.e': [5],
+      'b.f.g': "6"
+    });
+
+    equal(observed.a, 1, "unchanged a is 1");
+    equal(observed.b.c, 3, "updated b.c is 3");
+    equal(observed.b.d, "4", "updated b.d is '4'");
+    equal(observed.b.e[0], 5, "updated b.e[0] is 5");
+    equal(observed.b.f.g, "6", "updated b.f.g is '6'");
+    equal(observed.b.h, 6, "unchanged b.h is 6");
+  });
+
+  it("multisets a deeply structured object as a diff", function () {
+    observed.set({
+      b: {
+        c: 3,
+        d: "4",
+        e: [5],
+        f: {
+          g: "6"
+        }
+      }
+    });
+
+    equal(observed.a, 1, "unchanged a is 1");
+    equal(observed.b.c, 3, "updated b.c should be 3, is " + observed.b.c);
+    equal(observed.b.d, "4", "updated b.d is '4'");
+    equal(observed.b.e[0], 5, "updated b.e[0] is 5");
+    equal(observed.b.f.g, "6", "updated b.f.g is '6'");
+    equal(observed.b.h, 6, "unchanged b.h is 6");
+  });
+
   it("watches existing observable object properties", function () {
     var updated = 0;
 

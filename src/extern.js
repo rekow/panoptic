@@ -1,5 +1,5 @@
 /**
- * @file Externs for panoptic.
+ * @file Externs for panoptic library.
  * @author  David Rekow <d@davidrekow.com>
  * @copyright (c) David Rekow 2014
  * @externs

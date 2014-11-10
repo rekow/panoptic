@@ -9,7 +9,7 @@ Add to your `dependencies` in `package.json`:
 ```javascript
   ...
   "dependencies": {
-    "panoptic": "~0.0.2",
+    "panoptic": "~0.0.3",
     ...
   },
   ...
@@ -30,7 +30,7 @@ var panoptic = require('panoptic');
 then call with an object you want to observe:
 ```javascript
 var data = {
-  name: 'Cool Person',
+  name: 'David Rekow',
   age: 25
 };
 
@@ -59,6 +59,19 @@ created (think `mkdir -p`):
 ```javascript
 observable.set('a.b.c', value);   // if a or b doesn't exist they will be created
 observable.a.b.c = value;         // if a or b doesn't exist, throws TypeError
+```
+To set multiple keys at once, simply pass an object to `set()`:
+```javascript
+observable.set({  // as a flat namespaced object
+  'a': true,
+  'b.c': 12
+});
+observable.set({  // as a fully-structured object - will be set as diff
+  a: true,
+  b: {
+    c: 12
+  }
+});
 ```
 ###watching
 ```javascript

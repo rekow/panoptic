@@ -15,7 +15,7 @@ function Observable (data, root, path) {
   var k;
 
   if (root)
-    Observable.setRoot(this, root, path);
+    Observable.setRoot(this, root, path || '');
 
   /**
    * @expose
@@ -49,13 +49,23 @@ Observable.prototype = {
   },
 
   /**
-   * Sets a value by key.
+   * Sets a value by key. Pass an object to set multiple keys at once.
    * @expose
-   * @param {string} key
-   * @param {*} value
+   * @param {(string|Object.<string, *>)} key
+   * @param {*=} value
    */
   set: function (key, value) {
-    Observable.resolve(this, key, value);
+    if (typeof key === 'object' && typeof value === 'undefined') {
+      value = key;
+
+      for (key in value) {
+        if (value.hasOwnProperty(key))
+          Observable.resolve(this, key, value[key]);
+      }
+
+      return;
+    }
+    Observable.resolve(this, /** @type {string} */(key), value);
   },
 
   /**
@@ -226,11 +236,16 @@ Observable.resolve = function (observed, key, value) {
   if (value === undefined)
     return observed[pathname];
 
-  if (typeof value === 'object' && !(value instanceof Observable || value instanceof Array))
-    value = new Observable(value, root, fullpath);
-
   if (!observed.hasOwnProperty(pathname))
     observed.bind(pathname);
+
+  if (typeof value === 'object') {
+    if (observed[pathname] instanceof Observable)
+      return observed[pathname].set(value);
+
+    if (!(value instanceof Observable || value instanceof Array))
+      value = new Observable(value, root, fullpath);
+  }
 
   observed[pathname] = value;
 };
@@ -239,9 +254,9 @@ Observable.resolve = function (observed, key, value) {
  * Sets a specific Observable object as the root for another.
  * @private
  * @static
- * @param {Observable} observed
- * @param {Observable} root
- * @param {string} path
+ * @param {!Observable} observed
+ * @param {!Observable} root
+ * @param {!string} path
  */
 Observable.setRoot = function (observed, root, path) {
   Object.defineProperty(observed, '_root', {
@@ -267,14 +282,19 @@ Observable.setRoot = function (observed, root, path) {
  * @param {*} data
  * @return {Observable}
  */
-this.panoptic = function (data) {
+var panoptic = function (data) {
   return new Observable(data);
 };
 
+if (typeof window !== 'undefined' && window.self === window) {
+  /** @expose */
+  window.panoptic = panoptic;
+}
+
 if (typeof module !== 'undefined' && typeof module['exports'] === 'object') {
   /** @expose */
-  module.exports = this.panoptic;
+  module.exports = panoptic;
 }
 
 if (typeof define === 'function')
-  define('panoptic', this.panoptic);
+  define('panoptic', panoptic);

@@ -15,27 +15,27 @@ all: build
 build: test
 	@echo "Building panoptic..."
 	@mkdir -p $(THIS_DIR)/dist
-
 	@echo "Compiling dist package with closure compiler..."
 	@-java -jar $(THIS_DIR)/node_modules/closure-compiler-stream/lib/compiler.jar \
 		--debug false \
-		--warning_level QUIET \
-		--summary_detail_level 1 \
-		--js $(THIS_DIR)/src/index.js \
+		--warning_level VERBOSE \
+		--summary_detail_level 3 \
 		--language_in ECMASCRIPT5 \
 		--formatting PRETTY_PRINT \
-		--compilation_level WHITESPACE_ONLY \
+		--js $(THIS_DIR)/src/index.js \
+		--externs $(THIS_DIR)/externs.js \
+		--compilation_level SIMPLE_OPTIMIZATIONS \
 		--js_output_file $(THIS_DIR)/dist/panoptic.js \
 		--common_js_entry_module $(THIS_DIR)/src/index.js \
 		--output_wrapper '(function () {%output%}).call(this);'
-
 	@echo "Minifying dist package with closure compiler..."
 	@-java -jar $(THIS_DIR)/node_modules/closure-compiler-stream/lib/compiler.jar \
 		--debug false \
-		--warning_level QUIET \
-		--summary_detail_level 1 \
-		--js $(THIS_DIR)/src/index.js \
+		--warning_level VERBOSE \
+		--summary_detail_level 3 \
 		--language_in ECMASCRIPT5 \
+		--js $(THIS_DIR)/src/index.js \
+		--externs $(THIS_DIR)/externs.js \
 		--compilation_level ADVANCED_OPTIMIZATIONS \
 		--common_js_entry_module $(THIS_DIR)/src/index.js \
 		--js_output_file $(THIS_DIR)/dist/panoptic.min.js \

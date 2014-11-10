@@ -1,106 +1,90 @@
 (function () {/*
  David Rekow 2014
 */
-function Observable(data, root, path) {
-  var k;
-  if (root) {
-    Observable.setRoot(this, root, path);
-  }
+function Observable(a, b, c) {
+  var d;
+  b && Observable.setRoot(this, b, c || "");
   this._prop = {};
   this._cb = {};
-  for (k in data) {
-    if (data.hasOwnProperty(k) && typeof data[k] !== "function") {
-      this.bind(k, data[k]);
-    }
+  for (d in a) {
+    a.hasOwnProperty(d) && "function" !== typeof a[d] && this.bind(d, a[d]);
   }
 }
-Observable.prototype = {get:function(key) {
-  return Observable.resolve(this, key);
-}, set:function(key, value) {
-  Observable.resolve(this, key, value);
-}, watch:function(key, observer) {
+Observable.prototype = {get:function(a) {
+  return Observable.resolve(this, a);
+}, set:function(a, b) {
+  if ("object" === typeof a && "undefined" === typeof b) {
+    for (a in b = a, b) {
+      b.hasOwnProperty(a) && Observable.resolve(this, a, b[a]);
+    }
+  } else {
+    Observable.resolve(this, a, b);
+  }
+}, watch:function(a, b) {
   if (this._root) {
-    return this._root.watch(this._path + "." + key, observer);
+    return this._root.watch(this._path + "." + a, b);
   }
-  if (!this._cb[key]) {
-    this._cb[key] = [];
-  }
-  this._cb[key].push(observer);
-}, unwatch:function(key, observer) {
-  var i;
+  this._cb[a] || (this._cb[a] = []);
+  this._cb[a].push(b);
+}, unwatch:function(a, b) {
+  var c;
   if (this._root) {
-    return this._root.unwatch(this._path + "." + key, observer);
+    return this._root.unwatch(this._path + "." + a, b);
   }
-  if (!this._cb[key]) {
-    return;
-  }
-  if (!observer) {
-    this._cb[key] = [];
-    return;
-  }
-  i = this._cb[key].indexOf(observer);
-  if (i > -1) {
-    this._cb[key].splice(i, 1);
-  }
+  this._cb[a] && (b ? (c = this._cb[a].indexOf(b), -1 < c && this._cb[a].splice(c, 1)) : this._cb[a] = []);
 }, toJSON:function() {
   return this._prop;
-}, _root:null, _path:null, constructor:Observable, emit:function(key, value, observed) {
-  var observers;
+}, _root:null, _path:null, constructor:Observable, emit:function(a, b, c) {
   if (this._root) {
-    return this._root.emit(this._path + "." + key, value, observed);
+    return this._root.emit(this._path + "." + a, b, c);
   }
-  observers = this._cb[key];
-  if (!observers) {
-    return;
-  }
-  observers.forEach(function(observer) {
-    observer.call(observed, value);
+  (a = this._cb[a]) && a.forEach(function(a) {
+    a.call(c, b);
   });
-}, bind:function(key, value) {
-  Object.defineProperty(this, key, {enumerable:true, get:function() {
-    return this._prop[key];
-  }, set:function(value) {
-    this._prop[key] = value;
-    this.emit(key, value, this);
+}, bind:function(a, b) {
+  Object.defineProperty(this, a, {enumerable:!0, get:function() {
+    return this._prop[a];
+  }, set:function(b) {
+    this._prop[a] = b;
+    this.emit(a, b, this);
   }});
-  this.set(key, value);
+  this.set(a, b);
 }};
-Observable.resolve = function(observed, key, value) {
-  var path = key.split("."), pathname = path.pop(), fullpath = observed._path || "", root = observed._root || observed, _path, i;
-  for (i = 0;i < path.length;i++) {
-    _path = path[i];
-    fullpath += "." + _path;
-    if (!observed.hasOwnProperty(_path)) {
-      if (value === undefined || value === null) {
+Observable.resolve = function(a, b, c) {
+  b = b.split(".");
+  var d = b.pop(), e = a._path || "", h = a._root || a, f, g;
+  for (g = 0;g < b.length;g++) {
+    f = b[g];
+    e += "." + f;
+    if (!a.hasOwnProperty(f)) {
+      if (void 0 === c || null === c) {
         return null;
       }
-      observed.bind(_path, new Observable(null, root, fullpath));
+      a.bind(f, new Observable(null, h, e));
     }
-    observed = observed[_path];
+    a = a[f];
   }
-  fullpath += fullpath ? "." + pathname : pathname;
-  if (value === undefined) {
-    return observed[pathname];
+  e += e ? "." + d : d;
+  if (void 0 === c) {
+    return a[d];
   }
-  if (typeof value === "object" && !(value instanceof Observable || value instanceof Array)) {
-    value = new Observable(value, root, fullpath);
+  a.hasOwnProperty(d) || a.bind(d);
+  if ("object" === typeof c) {
+    if (a[d] instanceof Observable) {
+      return a[d].set(c);
+    }
+    c instanceof Observable || c instanceof Array || (c = new Observable(c, h, e));
   }
-  if (!observed.hasOwnProperty(pathname)) {
-    observed.bind(pathname);
-  }
-  observed[pathname] = value;
+  a[d] = c;
 };
-Observable.setRoot = function(observed, root, path) {
-  Object.defineProperty(observed, "_root", {value:root});
-  Object.defineProperty(observed, "_path", {value:path});
+Observable.setRoot = function(a, b, c) {
+  Object.defineProperty(a, "_root", {value:b});
+  Object.defineProperty(a, "_path", {value:c});
 };
-this.panoptic = function(data) {
-  return new Observable(data);
+var panoptic = function(a) {
+  return new Observable(a);
 };
-if (typeof module !== "undefined" && typeof module["exports"] === "object") {
-  module.exports = this.panoptic;
-}
-if (typeof define === "function") {
-  define("panoptic", this.panoptic);
-}
-;}).call(this);
+"undefined" !== typeof window && window.self === window && (window.panoptic = panoptic);
+"undefined" !== typeof module && "object" === typeof module.exports && (module.exports = panoptic);
+"function" === typeof define && define("panoptic", panoptic);
+}).call(this);
