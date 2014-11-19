@@ -9,7 +9,7 @@ Add to your `dependencies` in `package.json`:
 ```javascript
   ...
   "dependencies": {
-    "panoptic": "~0.0.3",
+    "panoptic": "~0.0.4",
     ...
   },
   ...
@@ -73,12 +73,31 @@ observable.set({  // as a fully-structured object - will be set as diff
   }
 });
 ```
+Setting via object property syntax only works if the key has already been seen -
+if you're adding a new key, use `set()` to ensure the observation chain is set up.
 ###watching
 ```javascript
 observable.watch('a.b.c', function (newValue) {
-  var value = this.get('c');  // 'this' is the object the value is retrieved from
+  var value = this.get('c');  // 'this' is the object actually holding the value
   value === newValue;         // watcher receives the new value after it's set
 });
+```
+Nested watchers will trigger parent watchers after triggering their own:
+```javascript
+observable.watch('a', function () {
+  console.log('reached "a" watcher');
+});
+
+observable.watch('a.b', function () {
+  console.log('reached "a.b" watcher');
+});
+
+observable.set('a.b', 5);
+```
+outputs
+```
+reached "a.b" watcher
+reached "a" watcher
 ```
 ###unwatching
 ```javascript
@@ -97,6 +116,6 @@ using, and uses a simple but powerful sparse-tree data structure to avoid the
 overhead of propagation and digest cycles when dispatching change events.
 
 ###why `panoptic`?
-panopticon (the less morbid connotations), also *pan* (all) + *opt* (option?)
+*pan* (all) + *optic* (seeing), derived from *panopticon* (the non-terrible connotations!)
 
 Find a bug? Please [file an issue](https://github.com/davidrekow/panoptic/issues)!

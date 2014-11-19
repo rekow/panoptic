@@ -1,3 +1,4 @@
+/*jshint sub:true */
 /**
  * @file Main panoptic module.
  * @author David Rekow <d@davidrekow.com>
@@ -14,9 +15,6 @@
 function Observable (data, root, path) {
   var k;
 
-  if (root)
-    Observable.setRoot(this, root, path || '');
-
   /**
    * @expose
    * @private
@@ -30,6 +28,9 @@ function Observable (data, root, path) {
    * @type {Object.<string, Array.<function(this:Observable, *)>>}
    */
   this._cb = {};
+
+  if (root)
+    this.setRoot(root, path || '');
 
   for (k in data) {
     if (data.hasOwnProperty(k) && typeof data[k] !== 'function')
@@ -197,6 +198,30 @@ Observable.prototype = {
     });
 
     this.set(key, value);
+  },
+
+  /**
+   * Sets another Observable object as the root for the current object.
+   * @private
+   * @param {!Observable} root
+   * @param {!string} path
+   */
+  setRoot: function (root, path) {
+    Object.defineProperty(this, '_root', {
+      /**
+       * @expose
+       * @type {Observable}
+       */
+      value: root
+    });
+
+    Object.defineProperty(this, '_path', {
+      /**
+       * @expose
+       * @type {string}
+       */
+      value: path
+    });
   }
 };
 
@@ -248,32 +273,6 @@ Observable.resolve = function (observed, key, value) {
   }
 
   observed[pathname] = value;
-};
-
-/**
- * Sets a specific Observable object as the root for another.
- * @private
- * @static
- * @param {!Observable} observed
- * @param {!Observable} root
- * @param {!string} path
- */
-Observable.setRoot = function (observed, root, path) {
-  Object.defineProperty(observed, '_root', {
-    /**
-     * @expose
-     * @type {Observable}
-     */
-    value: root
-  });
-
-  Object.defineProperty(observed, '_path', {
-    /**
-     * @expose
-     * @type {string}
-     */
-    value: path
-  });
 };
 
 /**

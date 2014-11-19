@@ -15,20 +15,7 @@ all: build
 build: test
 	@echo "Building panoptic..."
 	@mkdir -p $(THIS_DIR)/dist
-	@echo "Compiling dist package with closure compiler..."
-	@-java -jar $(THIS_DIR)/node_modules/closure-compiler-stream/lib/compiler.jar \
-		--debug false \
-		--warning_level VERBOSE \
-		--summary_detail_level 3 \
-		--language_in ECMASCRIPT5 \
-		--formatting PRETTY_PRINT \
-		--js $(THIS_DIR)/src/index.js \
-		--externs $(THIS_DIR)/externs.js \
-		--compilation_level SIMPLE_OPTIMIZATIONS \
-		--js_output_file $(THIS_DIR)/dist/panoptic.js \
-		--common_js_entry_module $(THIS_DIR)/src/index.js \
-		--output_wrapper '(function () {%output%}).call(this);'
-	@echo "Minifying dist package with closure compiler..."
+	@echo "Compiling and minifying dist package with Closure Compiler..."
 	@-java -jar $(THIS_DIR)/node_modules/closure-compiler-stream/lib/compiler.jar \
 		--debug false \
 		--warning_level VERBOSE \
@@ -41,13 +28,11 @@ build: test
 		--js_output_file $(THIS_DIR)/dist/panoptic.min.js \
 		--output_wrapper '(function () {%output%}).call(this);' \
 		--use_types_for_optimization
-
 	@echo "Build complete."
 
 clean:
 	@echo "Cleaning built files..."
 	@-rm -rf $(THIS_DIR)/dist
-
 	@echo "Cleaning test reports..."
 	@-rm -rf $(THIS_DIR)/test/reports
 
