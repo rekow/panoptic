@@ -9,7 +9,7 @@ Add to your `dependencies` in `package.json`:
 ```javascript
   ...
   "dependencies": {
-    "panoptic": "~0.0.4",
+    "panoptic": "~0.0.5",
     ...
   },
   ...
@@ -75,6 +75,12 @@ observable.set({  // as a fully-structured object - will be set as diff
 ```
 Setting via object property syntax only works if the key has already been seen -
 if you're adding a new key, use `set()` to ensure the observation chain is set up.
+###replacing
+```javascript
+observable.replace({key: 'newValue'});
+```
+Calling `replace()` replaces the current observed data entirely with the passed data,
+triggering watchers for removed, modified and added keys.
 ###watching
 ```javascript
 observable.watch('a.b.c', function (newValue) {

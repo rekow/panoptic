@@ -8,7 +8,7 @@
 /**
  * Observable proxy for an object.
  * @constructor
- * @param {*} data Object to watch for changes.
+ * @param {?} data Object to watch for changes.
  * @param {Observable=} root Root Observable object in this branch.
  * @param {string=} path Path relative to root.
  */
@@ -18,14 +18,14 @@ function Observable (data, root, path) {
   /**
    * @expose
    * @private
-   * @type {Object.<string, *>}
+   * @type {Object.<string, ?>}
    */
   this._prop = {};
 
   /**
    * @expose
    * @private
-   * @type {Object.<string, Array.<function(this:Observable, *)>>}
+   * @type {Object.<string, Array.<function(this:Observable, ?)>>}
    */
   this._cb = {};
 
@@ -43,7 +43,7 @@ Observable.prototype = {
    * Returns a value by key.
    * @expose
    * @param {string} key
-   * @return {*}
+   * @return {?}
    */
   get: function (key) {
     return Observable.resolve(this, key);
@@ -52,8 +52,8 @@ Observable.prototype = {
   /**
    * Sets a value by key. Pass an object to set multiple keys at once.
    * @expose
-   * @param {(string|Object.<string, *>)} key
-   * @param {*=} value
+   * @param {(string|Object.<string, ?>)} key
+   * @param {?=} value
    */
   set: function (key, value) {
     if (typeof key === 'object' && typeof value === 'undefined') {
@@ -70,10 +70,29 @@ Observable.prototype = {
   },
 
   /**
+   * Replaces the current observed object with a new object. Triggers change events for
+   * all removed, modified and added keys.
+   * @param {Object.<string, ?>} data
+   */
+  replace: function (data) {
+    var current = this._prop,
+      key;
+
+    for (key in current) {
+      if (current.hasOwnProperty(key) && data[key] == null)
+        this.set(key, null);
+    }
+
+    this._prop = {};
+
+    this.set(data);
+  },
+
+  /**
    * Watches an observable object for changes on a key.
    * @expose
    * @param {string} key
-   * @param {function(this:Observable, *)} observer
+   * @param {function(this:Observable, ?)} observer
    */
   watch: function (key, observer) {
     if (this._root)
@@ -89,7 +108,7 @@ Observable.prototype = {
    * Removes an existing watcher for changes on a key.
    * @expose
    * @param {string} key
-   * @param {function(this:Observable, *)=} observer
+   * @param {function(this:Observable, ?)=} observer
    */
   unwatch: function (key, observer) {
     var i;
@@ -144,7 +163,7 @@ Observable.prototype = {
    * Emits a change event for a particular key.
    * @private
    * @param {string} key
-   * @param {*} value
+   * @param {?} value
    * @param {Observable} observed
    */
   emit: function (key, value, observed) {
@@ -167,7 +186,7 @@ Observable.prototype = {
    * Binds observation to a particular key path and value.
    * @private
    * @param {string} key
-   * @param {*} value
+   * @param {?} value
    */
   bind: function (key, value) {
     Object.defineProperty(this, key, {
@@ -180,7 +199,7 @@ Observable.prototype = {
       /**
        * @expose
        * @this {Observable}
-       * @return {*}
+       * @return {?}
        */
       get: function () {
         return this._prop[key];
@@ -189,7 +208,7 @@ Observable.prototype = {
       /**
        * @expose
        * @this {Observable}
-       * @param {*} value
+       * @param {?} value
        */
       set: function (value) {
         this._prop[key] = value;
@@ -231,8 +250,8 @@ Observable.prototype = {
  * @static
  * @param {Observable} observed
  * @param {string} key
- * @param {*=} value
- * @return {*}
+ * @param {?=} value
+ * @return {?}
  */
 Observable.resolve = function (observed, key, value) {
   var path = key.split('.'),
@@ -278,7 +297,7 @@ Observable.resolve = function (observed, key, value) {
 /**
  * Return a new Observable object.
  * @expose
- * @param {*} data
+ * @param {?} data
  * @return {Observable}
  */
 var panoptic = function (data) {

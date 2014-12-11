@@ -8,29 +8,34 @@
 /**
  * @typedef {Object}
  */
-var Observable;
+var Observable = {};
 
 /**
  * @param {string} key
- * @return {*}
+ * @return {?}
  */
 Observable.prototype.get = function (key) {};
 
 /**
- * @param {string} key
- * @param {*} value
+ * @param {(string|Object.<string, ?>)} key
+ * @param {?=} value
  */
 Observable.prototype.set = function (key, value) {};
 
 /**
+ * @param {Object.<string, ?>} data
+ */
+Observable.prototype.replace = function (data) {};
+
+/**
  * @param {string} key
- * @param {function(this:Observable, *)} observer
+ * @param {function(this:Observable, ?)} observer
  */
 Observable.prototype.watch = function (key, observer) {};
 
 /**
  * @param {string} key
- * @param {function(this:Observable, *)=} observer
+ * @param {function(this:Observable, ?)=} observer
  */
 Observable.prototype.unwatch = function (key, observer) {};
 
@@ -40,6 +45,6 @@ Observable.prototype.unwatch = function (key, observer) {};
 Observable.prototype.toJSON = function () {};
 
 /**
- * @typedef {function(*): Observable}
+ * @typedef {function(?): Observable}
  */
 var panoptic;
