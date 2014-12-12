@@ -9,7 +9,7 @@ Add to your `dependencies` in `package.json`:
 ```javascript
   ...
   "dependencies": {
-    "panoptic": "~0.0.5",
+    "panoptic": "~0.0.6",
     ...
   },
   ...
@@ -75,12 +75,51 @@ observable.set({  // as a fully-structured object - will be set as diff
 ```
 Setting via object property syntax only works if the key has already been seen -
 if you're adding a new key, use `set()` to ensure the observation chain is set up.
+###removing
+```javascript
+observable.remove('a.b');
+observable.set('a.b', null);
+observable.a.b = null;
+```
+To remove a key from an observable object call `remove()`, or simply set it to `null`.
+If the key currently points to a nested object, watchers for any existing nested
+properties will be invoked before removing the key:
+```javascript
+observable = panoptic({
+  a: {
+    b: {
+      c: 1
+    }
+  }
+});
+
+observable.watch('a.b.c', function (value) {
+  console.log('"a.b.c" value: ' + value);
+});
+observable.watch('a.b.d', function (value) {
+  console.log('"a.b.d" value: ' + value);
+});
+observable.watch('a.b', function (value) {
+  console.log('"a.b" value: ' + value);
+});
+
+observable.remove('a.b');
+```
+outputs
+```
+"a.b.c" value: null
+"a.b" value: null
+```
+Because the key `a.b.d` had not yet been set, its watcher did not fire.
 ###replacing
 ```javascript
 observable.replace({key: 'newValue'});
 ```
 Calling `replace()` replaces the current observed data entirely with the passed data,
-triggering watchers for removed, modified and added keys.
+triggering watchers for removed, modified and added keys. This method uses `remove()`
+behind the scenes, so only watchers for existing properties will fire upon removal
+or modification. Any already-registered watchers for properties being added will be
+invoked.
 ###watching
 ```javascript
 observable.watch('a.b.c', function (newValue) {

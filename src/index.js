@@ -66,26 +66,62 @@ Observable.prototype = {
 
       return;
     }
+
     Observable.resolve(this, /** @type {string} */(key), value);
+  },
+
+  /**
+   * Removes a key from the observed object, triggering all nested watchers.
+   * @expose
+   * @param {string} key
+   */
+  remove: function (key) {
+    var k;
+
+    if (this._root)
+      return this._root.remove(this._path + '.' + key);
+
+    for (k in this._cb) {
+      if (this._cb.hasOwnProperty(k) &&
+        k.indexOf(key) === 0 &&
+        k !== key &&
+        this.get(k))
+        this.emit(k, null, this);
+    }
+
+    this[key] = undefined;
   },
 
   /**
    * Replaces the current observed object with a new object. Triggers change events for
    * all removed, modified and added keys.
-   * @param {Object.<string, ?>} data
+   * @expose
+   * @param {!Object.<string, ?>} data
+   * @throws {TypeError} If data is not an object.
    */
   replace: function (data) {
-    var current = this._prop,
-      key;
+    /*jshint eqnull:true */
+    var added = {},
+      key, value;
 
-    for (key in current) {
-      if (current.hasOwnProperty(key) && data[key] == null)
-        this.set(key, null);
+    if (typeof data !== 'object')
+      throw new TypeError('Fragment.replace() expects an object as the only parameter.');
+
+    for (key in this._prop) {
+      if (this._prop.hasOwnProperty(key) && data[key] === undefined)
+        this[key] = null;
     }
 
-    this._prop = {};
+    for (key in data) {
+      if (data.hasOwnProperty(key)) {
+        value = this.get(key);
 
-    this.set(data);
+        if (value instanceof Observable)
+          value.replace(data[key] || {});
+
+        this.set(key, data[key]);
+      }
+    }
   },
 
   /**
@@ -160,29 +196,6 @@ Observable.prototype = {
   constructor: Observable,
 
   /**
-   * Emits a change event for a particular key.
-   * @private
-   * @param {string} key
-   * @param {?} value
-   * @param {Observable} observed
-   */
-  emit: function (key, value, observed) {
-    var observers;
-
-    if (this._root)
-      return this._root.emit(this._path + '.' + key, value, observed);
-
-    observers = this._cb[key];
-
-    if (!observers)
-      return;
-
-    observers.forEach(function (observer) {
-      observer.call(observed, value);
-    });
-  },
-
-  /**
    * Binds observation to a particular key path and value.
    * @private
    * @param {string} key
@@ -211,12 +224,38 @@ Observable.prototype = {
        * @param {?} value
        */
       set: function (value) {
+        if (value === null)
+          return this.remove(key);
+
         this._prop[key] = value;
         this.emit(key, value, this);
       }
     });
 
     this.set(key, value);
+  },
+
+  /**
+   * Emits a change event for a particular key.
+   * @private
+   * @param {string} key
+   * @param {?} value
+   * @param {Observable} observed
+   */
+  emit: function (key, value, observed) {
+    var observers;
+
+    if (this._root)
+      return this._root.emit(this._path + '.' + key, value, observed);
+
+    observers = this._cb[key];
+
+    if (!observers)
+      return;
+
+    observers.forEach(function (observer) {
+      observer.call(observed, value);
+    });
   },
 
   /**
@@ -298,10 +337,14 @@ Observable.resolve = function (observed, key, value) {
  * Return a new Observable object.
  * @expose
  * @param {?} data
+ * @param {Observable=} root
  * @return {Observable}
  */
-var panoptic = function (data) {
-  return new Observable(data);
+var panoptic = function (data, root) {
+  if (data instanceof Observable)
+    return root ? (data._root = root, data) : data;
+
+  return new Observable(data, root);
 };
 
 if (typeof window !== 'undefined' && window.self === window) {

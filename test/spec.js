@@ -35,27 +35,32 @@ describe("Panopt module", function () {
   });
 
   it("instantiates an observable object proxy, also proxying subobjects", function () {
-    equal(observed.constructor.name, "Observable", "observed object's constructor is Observable");
-    equal(observed.b.constructor.name, "Observable", "nested observed object is also Observable");
-    equal(observed.b.f.constructor.name, "Observable", "deeply nested observed object is also Observable");
+    equal(observed.constructor.name, "Observable",
+      "observed object's constructor should be Observable, got " + observed.constructor.name);
+    equal(observed.b.constructor.name, "Observable",
+      "nested observed object should be Observable, got " + observed.b.constructor.name);
+    equal(observed.b.f.constructor.name, "Observable",
+      "deeply nested observed object should be Observable, got " + observed.b.f.constructor.name);
   });
 
   it("only observes and proxies instance properties", function () {
     var ct = function () { this.b = 2; };
     ct.prototype.a = 1;
     observed = panoptic(new ct());
-    equal(observed.a, undefined, "prototype.a is undefined on observable proxy");
-    equal(observed.b, 2, "b is 2");
-  })
+    equal(observed.a, undefined,
+      "prototype property 'a' should be undefined on observable proxy, got " + observed.a);
+    equal(observed.b, 2,
+      "instance property 'b' should be 2 on observable proxy, got " + observed.b);
+  });
 
   it("resolves object properties", function () {
-    equal(observed.a, 1, "a is 1");
-    equal(observed.b.c, 2, "b.c is 2");
-    equal(observed.b.d, "3", "b.d is '3'");
-    equal(observed.b.e[0], 4, "b.e[0] is 4");
-    equal(observed.b.f.g, "5", "b.f.g is '5'");
-    equal(observed.b.h, 6, "b.h is 6");
-    equal(observed.b.i, undefined, "b.i is undefined");
+    equal(observed.a, 1, "a should be 1, got " + observed.a);
+    equal(observed.b.c, 2, "b.c should be 2, got " + observed.b.c);
+    equal(observed.b.d, "3", "b.d should be '3', got " + observed.b.d);
+    equal(observed.b.e[0], 4, "b.e[0] should be 4, got " + observed.b.e[0]);
+    equal(observed.b.f.g, "5", "b.f.g should be '5', got " + observed.b.f.g);
+    equal(observed.b.h, 6, "b.h should be 6, got " + observed.b.h);
+    equal(observed.b.i, undefined, "b.i should be undefined, got " + observed.b.i);
   });
 
   it("resolves nested namespaces from the root", function () {
@@ -362,6 +367,145 @@ describe("Panopt module", function () {
   });
 
   it("serializes to JSON", function () {
-    equal(JSON.stringify(observed), JSON.stringify(data), "JSON strings are equal");
+    equal(JSON.stringify(observed), JSON.stringify(data),
+      "expected JSON " + JSON.stringify(observed) + " to equal JSON " + JSON.stringify(data));
   });
+
+  it("removes a key from the observed object, triggering any nested watchers", function () {
+    var updated = 0,
+      called = [];
+
+    observed.watch('b', function () {
+      called.push('b'); updated++;
+    });
+    observed.watch('b.c', function () {
+      called.push('b.c'); updated++;
+    });
+    observed.watch('b.d', function () {
+      called.push('b.d'); updated++;
+    });
+    observed.watch('b.e', function () {
+      called.push('b.e'); updated++;
+    });
+    observed.watch('b.f.g', function () {
+      called.push('b.f.g'); updated++;
+    });
+    observed.watch('b.h', function () {
+      called.push('b.h'); updated++;
+    });
+
+    observed.remove('b');
+
+    equal(updated, 6,
+      "expected exactly 6 watchers to be called, called " + updated + ": " + called.join(','));
+  });
+
+  it("removes a key from the observed object, only triggering watchers for existing properties", function () {
+    var updated = 0,
+      called = [];
+
+    observed.watch('b', function () {
+      called.push('b'); updated++;
+    });
+    observed.watch('b.c', function () {
+      called.push('b.c'); updated++;
+    });
+    observed.watch('b.d', function () {
+      called.push('b.d'); updated++;
+    });
+    observed.watch('b.e', function () {
+      called.push('b.e'); updated++;
+    });
+    observed.watch('b.f.g', function () {
+      called.push('b.f.g'); updated++;
+    });
+    observed.watch('b.h', function () {
+      called.push('b.h'); updated++;
+    });
+    observed.watch('b.f.i', function () {
+      called.push('b.f.i'); updated++;
+    });
+    observed.watch('b.j', function () {
+      called.push('b.j'); updated++;
+    });
+
+    observed.remove('b');
+
+    equal(updated, 6,
+      "expected exactly 6 watchers to be called, called " + updated + ": " + called.join(','));
+  });
+
+  it("replaces the entire watched dataset, triggering any nested watchers", function () {
+    var updated = 0,
+      called = [];
+
+    observed.watch('a', function () {
+      called.push('a'); updated++;
+    });
+    observed.watch('b', function () {
+      called.push('b'); updated++;
+    });
+    observed.watch('b.c', function () {
+      called.push('b.c'); updated++;
+    });
+    observed.watch('b.d', function () {
+      called.push('b.d'); updated++;
+    });
+    observed.watch('b.e', function () {
+      called.push('b.e'); updated++;
+    });
+    observed.watch('b.f.g', function () {
+      called.push('b.f.g'); updated++;
+    });
+    observed.watch('b.h', function () {
+      called.push('b.h'); updated++;
+    });
+    observed.watch('i', function () {
+      called.push('i'); updated++;
+    });
+
+    observed.replace({i: 2});
+
+    equal(updated, 8,
+      "expected exactly 8 watchers to be called, called " + updated + ": " + called.join(','));
+  });
+
+  it("replaces the entire watched dataset, only triggering watchers for existing properties", function () {
+    var updated = 0,
+      called = [];
+
+    observed.watch('a', function () {
+      called.push('a'); updated++;
+    });
+    observed.watch('b', function () {
+      called.push('b'); updated++;
+    });
+    observed.watch('b.c', function () {
+      called.push('b.c'); updated++;
+    });
+    observed.watch('b.d', function () {
+      called.push('b.d'); updated++;
+    });
+    observed.watch('b.e', function () {
+      called.push('b.e'); updated++;
+    });
+    observed.watch('b.f.g', function () {
+      called.push('b.f.g'); updated++;
+    });
+    observed.watch('b.h', function () {
+      called.push('b.h'); updated++;
+    });
+    observed.watch('i', function () {
+      called.push('i'); updated++;
+    });
+    observed.watch('X', function () {
+      called.push('X'); updated++;
+    });
+
+    observed.replace({i: 2});
+
+    equal(updated, 8,
+      "expected exactly 8 watchers to be called, called " + updated + ": " + called.join(','));
+  });
+
 });
