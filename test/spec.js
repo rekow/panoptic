@@ -118,7 +118,7 @@ describe("Panopt module", function () {
     equal(observed.b.d, "4", "updated b.d is '4'");
     equal(observed.b.e[0], 5, "updated b.e[0] is 5");
     equal(observed.b.f.g, "6", "updated b.f.g is '6'");
-    equal(observed.b.h, 6, "unchanged b.h is 6");
+    equal(observed.b.h, 6, "expected unchanged b.h is 6, was " + observed.b.h);
   });
 
   it("multisets a deeply structured object as a diff", function () {
@@ -394,7 +394,7 @@ describe("Panopt module", function () {
       called.push('b.h'); updated++;
     });
 
-    observed.remove('b');
+    observed.b = null;
 
     equal(updated, 6,
       "expected exactly 6 watchers to be called, called " + updated + ": " + called.join(','));
@@ -429,7 +429,7 @@ describe("Panopt module", function () {
       called.push('b.j'); updated++;
     });
 
-    observed.remove('b');
+    observed.b = null;
 
     equal(updated, 6,
       "expected exactly 6 watchers to be called, called " + updated + ": " + called.join(','));
