@@ -23,11 +23,6 @@ Observable.prototype.get = function (key) {};
 Observable.prototype.set = function (key, value) {};
 
 /**
- * @param {string} key
- */
-Observable.prototype.remove = function (key) {};
-
-/**
  * @param {Object.<string, ?>} data
  */
 Observable.prototype.replace = function (data) {};

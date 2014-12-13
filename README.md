@@ -9,7 +9,7 @@ Add to your `dependencies` in `package.json`:
 ```javascript
   ...
   "dependencies": {
-    "panoptic": "~0.0.6",
+    "panoptic": "~0.0.7",
     ...
   },
   ...
@@ -77,13 +77,12 @@ Setting via object property syntax only works if the key has already been seen -
 if you're adding a new key, use `set()` to ensure the observation chain is set up.
 ###removing
 ```javascript
-observable.remove('a.b');
 observable.set('a.b', null);
 observable.a.b = null;
 ```
-To remove a key from an observable object call `remove()`, or simply set it to `null`.
-If the key currently points to a nested object, watchers for any existing nested
-properties will be invoked before removing the key:
+To remove a key from an observable object simply set it to `null`. If the key
+currently points to a nested object, watchers for any existing nested properties
+will be invoked before removing the key:
 ```javascript
 observable = panoptic({
   a: {
@@ -103,7 +102,7 @@ observable.watch('a.b', function (value) {
   console.log('"a.b" value: ' + value);
 });
 
-observable.remove('a.b');
+observable.a.b = null;
 ```
 outputs
 ```

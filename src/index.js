@@ -71,28 +71,6 @@ Observable.prototype = {
   },
 
   /**
-   * Removes a key from the observed object, triggering all nested watchers.
-   * @expose
-   * @param {string} key
-   */
-  remove: function (key) {
-    var k;
-
-    if (this._root)
-      return this._root.remove(this._path + '.' + key);
-
-    for (k in this._cb) {
-      if (this._cb.hasOwnProperty(k) &&
-        k.indexOf(key) === 0 &&
-        k !== key &&
-        this.get(k))
-        this.emit(k, null, this);
-    }
-
-    this[key] = undefined;
-  },
-
-  /**
    * Replaces the current observed object with a new object. Triggers change events for
    * all removed, modified and added keys.
    * @expose
@@ -224,8 +202,13 @@ Observable.prototype = {
        * @param {?} value
        */
       set: function (value) {
-        if (value === null)
-          return this.remove(key);
+        if (value === null) {
+          this.remove(key);
+          value = undefined;
+        }
+
+        if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Observable))
+          return Observable.resolve(this, key, value);
 
         this._prop[key] = value;
         this.emit(key, value, this);
@@ -256,6 +239,26 @@ Observable.prototype = {
     observers.forEach(function (observer) {
       observer.call(observed, value);
     });
+  },
+
+  /**
+   * Removes a key from the observed object, triggering all nested watchers.
+   * @private
+   * @param {string} key
+   */
+  remove: function (key) {
+    var k;
+
+    if (this._root)
+      return this._root.remove(this._path + '.' + key);
+
+    for (k in this._cb) {
+      if (this._cb.hasOwnProperty(k) &&
+        k.indexOf(key) === 0 &&
+        k !== key &&
+        this.get(k))
+        this.emit(k, null, this);
+    }
   },
 
   /**
@@ -302,13 +305,17 @@ Observable.resolve = function (observed, key, value) {
   for (i = 0; i < path.length; i++) {
     _path = path[i];
 
-    fullpath += '.' + _path;
+    fullpath += fullpath ? '.' + _path : path;
 
-    if (!observed.hasOwnProperty(_path)) {
+    if (!observed[_path]) {
       if (value === undefined || value === null)
         return null;
 
-      observed.bind(_path, new Observable(null, root, fullpath));
+      if (observed.hasOwnProperty(_path)) {
+        observed[_path] = new Observable(null, root, fullpath);
+      } else {
+        observed.bind(_path, new Observable(null, root, fullpath));
+      }
     }
 
     observed = observed[_path];
