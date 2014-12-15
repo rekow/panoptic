@@ -180,40 +180,49 @@ describe("Panopt module", function () {
   });
 
   it("watches existing and future nested namespaces from the root", function () {
-    var updated = 0;
+    var updated = 0
+      called = [];
 
     observed.watch('a', function (v) {
       equal(v, 2, "updated a is 2");
+      called.push('a');
       updated++;
     });
     observed.watch('b.c', function (v) {
       equal(v, 3, "updated b.c is 3");
+      called.push('b.c');
       updated++;
     });
     observed.watch('b.d', function (v) {
       equal(v, "4", "updated b.d is '4'");
+      called.push('b.d');
       updated++;
     });
     observed.watch('b.e', function (v) {
       equal(v[0], 5, "updated b.e[0] is 5");
+      called.push('b.e[0]');
       updated++;
     });
     observed.watch('b.f.g', function (v) {
       equal(v, "6", "updated b.f.g is '6'");
+      called.push('b.f.g');
       updated++;
     });
     observed.watch('b.h', function (v) {
       equal(v, 7, "updated b.h is 7");
+      called.push('b.h');
       updated++;
     });
 
     observed.watch('b.f.i', function (v) {
       equal(v, 8, "new b.f.i is 8");
+      called.push('b.f.i');
       updated++;
     });
 
     observed.watch('b.j', function (v) {
       equal(v, "9", "new b.j is '9'");
+      called.push('b.j');
       updated++;
     });
 
@@ -230,7 +239,8 @@ describe("Panopt module", function () {
     observed.set("b.f.i", 8);
     observed.set("b.j", "9");
 
-    equal(updated, 8, "all watchers were called");
+    equal(updated, 8,
+      "expected exactly 8 watchers to be called, called " + updated + ": " + called.join(','));
   });
 
   it("removes watchers on existing observable object properties", function () {

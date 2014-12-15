@@ -15,6 +15,8 @@
 function Observable (data, root, path) {
   var k;
 
+  data = data || {};
+
   /**
    * @expose
    * @private
@@ -29,8 +31,19 @@ function Observable (data, root, path) {
    */
   this._cb = {};
 
-  if (root)
-    this.setRoot(root, path || '');
+  /**
+   * @expose
+   * @private
+   * @type {?Observable}
+   */
+  this._root = root || null;
+
+  /**
+   * @expose
+   * @private
+   * @type {string}
+   */
+  this._path = typeof path === 'string' ? path : '';
 
   for (k in data) {
     if (data.hasOwnProperty(k) && typeof data[k] !== 'function')
@@ -38,251 +51,216 @@ function Observable (data, root, path) {
   }
 }
 
-Observable.prototype = {
-  /**
-   * Returns a value by key.
-   * @expose
-   * @param {string} key
-   * @return {?}
-   */
-  get: function (key) {
-    return Observable.resolve(this, key);
-  },
+/**
+ * Returns a value by key.
+ * @expose
+ * @param {string} key
+ * @return {?}
+ */
+Observable.prototype.get = function (key) {
+  return Observable.resolve(this, key);
+};
 
-  /**
-   * Sets a value by key. Pass an object to set multiple keys at once.
-   * @expose
-   * @param {(string|Object.<string, ?>)} key
-   * @param {?=} value
-   */
-  set: function (key, value) {
-    if (typeof key === 'object' && typeof value === 'undefined') {
-      value = key;
+/**
+ * Sets a value by key. Pass an object to set multiple keys at once.
+ * @expose
+ * @param {(string|Object.<string, ?>)} key
+ * @param {?=} value
+ */
+Observable.prototype.set = function (key, value) {
+  if (typeof key === 'object' && typeof value === 'undefined') {
+    value = key;
 
-      for (key in value) {
-        if (value.hasOwnProperty(key))
-          Observable.resolve(this, key, value[key]);
+    for (key in value) {
+      if (value.hasOwnProperty(key))
+        Observable.resolve(this, key, value[key]);
+    }
+
+    return;
+  }
+
+  Observable.resolve(this, /** @type {string} */(key), value);
+};
+
+/**
+ * Replaces the current observed object with a new object. Triggers change events for
+ * all removed, modified and added keys.
+ * @expose
+ * @param {!Object.<string, ?>} data
+ * @throws {TypeError} If data is not an object.
+ */
+Observable.prototype.replace = function (data) {
+  /*jshint eqnull:true */
+  var added = {},
+    key, value;
+
+  if (typeof data !== 'object')
+    throw new TypeError('Fragment.replace() expects an object as the only parameter.');
+
+  for (key in this._prop) {
+    if (this._prop.hasOwnProperty(key) && data[key] === undefined)
+      this[key] = null;
+  }
+
+  for (key in data) {
+    if (data.hasOwnProperty(key)) {
+      value = this.get(key);
+
+      if (value instanceof Observable)
+        value.replace(data[key] || {});
+
+      this.set(key, data[key]);
+    }
+  }
+};
+
+/**
+ * Watches an observable object for changes on a key.
+ * @expose
+ * @param {string} key
+ * @param {function(this:Observable, ?)} observer
+ */
+Observable.prototype.watch = function (key, observer) {
+  if (this._root)
+    return this._root.watch(this._path + '.' + key, observer);
+
+  if (!this._cb[key])
+    this._cb[key] = [];
+
+  this._cb[key].push(observer);
+};
+
+/**
+ * Removes an existing watcher for changes on a key.
+ * @expose
+ * @param {string} key
+ * @param {function(this:Observable, ?)=} observer
+ */
+Observable.prototype.unwatch = function (key, observer) {
+  var i;
+
+  if (this._root)
+    return this._root.unwatch(this._path + '.' + key, observer);
+
+  if (!this._cb[key])
+    return;
+
+  if (!observer) {
+    this._cb[key] = [];
+    return;
+  }
+
+  i = this._cb[key].indexOf(observer);
+
+  if (i > -1)
+    this._cb[key].splice(i, 1);
+};
+
+/**
+ * @expose
+ * @return {Object}
+ */
+Observable.prototype.toJSON = function () {
+  return this._prop;
+};
+
+/**
+ * Binds observation to a particular key path and value.
+ * @expose
+ * @private
+ * @param {string} key
+ * @param {?} value
+ */
+Observable.prototype.bind = function (key, value) {
+  Object.defineProperty(this, key, {
+    /**
+     * @expose
+     * @type {boolean}
+     */
+    enumerable: true,
+
+    /**
+     * @expose
+     * @this {Observable}
+     * @return {?}
+     */
+    get: function () {
+      return this._prop[key];
+    },
+
+    /**
+     * @expose
+     * @this {Observable}
+     * @param {?} value
+     */
+    set: function (value) {
+      if (value === null) {
+        this.remove(key);
+        value = undefined;
       }
 
-      return;
-    }
-
-    Observable.resolve(this, /** @type {string} */(key), value);
-  },
-
-  /**
-   * Replaces the current observed object with a new object. Triggers change events for
-   * all removed, modified and added keys.
-   * @expose
-   * @param {!Object.<string, ?>} data
-   * @throws {TypeError} If data is not an object.
-   */
-  replace: function (data) {
-    /*jshint eqnull:true */
-    var added = {},
-      key, value;
-
-    if (typeof data !== 'object')
-      throw new TypeError('Fragment.replace() expects an object as the only parameter.');
-
-    for (key in this._prop) {
-      if (this._prop.hasOwnProperty(key) && data[key] === undefined)
-        this[key] = null;
-    }
-
-    for (key in data) {
-      if (data.hasOwnProperty(key)) {
-        value = this.get(key);
-
-        if (value instanceof Observable)
-          value.replace(data[key] || {});
-
-        this.set(key, data[key]);
-      }
-    }
-  },
-
-  /**
-   * Watches an observable object for changes on a key.
-   * @expose
-   * @param {string} key
-   * @param {function(this:Observable, ?)} observer
-   */
-  watch: function (key, observer) {
-    if (this._root)
-      return this._root.watch(this._path + '.' + key, observer);
-
-    if (!this._cb[key])
-      this._cb[key] = [];
-
-    this._cb[key].push(observer);
-  },
-
-  /**
-   * Removes an existing watcher for changes on a key.
-   * @expose
-   * @param {string} key
-   * @param {function(this:Observable, ?)=} observer
-   */
-  unwatch: function (key, observer) {
-    var i;
-
-    if (this._root)
-      return this._root.unwatch(this._path + '.' + key, observer);
-
-    if (!this._cb[key])
-      return;
-
-    if (!observer) {
-      this._cb[key] = [];
-      return;
-    }
-
-    i = this._cb[key].indexOf(observer);
-
-    if (i > -1)
-      this._cb[key].splice(i, 1);
-  },
-
-  /**
-   * @expose
-   * @return {Object}
-   */
-  toJSON: function () {
-    return this._prop;
-  },
-
-  /**
-   * @expose
-   * @private
-   * @type {?Observable}
-   */
-  _root: null,
-
-  /**
-   * @expose
-   * @private
-   * @type {?string}
-   */
-  _path: null,
-
-  /**
-   * @expose
-   * @private
-   * @const
-   */
-  constructor: Observable,
-
-  /**
-   * Binds observation to a particular key path and value.
-   * @private
-   * @param {string} key
-   * @param {?} value
-   */
-  bind: function (key, value) {
-    Object.defineProperty(this, key, {
-      /**
-       * @expose
-       * @type {boolean}
-       */
-      enumerable: true,
-
-      /**
-       * @expose
-       * @this {Observable}
-       * @return {?}
-       */
-      get: function () {
-        return this._prop[key];
-      },
-
-      /**
-       * @expose
-       * @this {Observable}
-       * @param {?} value
-       */
-      set: function (value) {
-        if (value === null) {
-          this.remove(key);
-          value = undefined;
-        }
-
-        if (typeof value === 'object' && !Array.isArray(value) && !(value instanceof Observable))
+      if (typeof value === 'object' &&
+          !(value instanceof Observable) &&
+          !(value instanceof ObservableArray)) {
+        if (value.constructor !== Array)
           return Observable.resolve(this, key, value);
 
-        this._prop[key] = value;
-        this.emit(key, value, this);
+        value = new ObservableArray(
+          value,
+          this._root || this,
+          this._path ? this._path + '.' + key : key);
       }
-    });
 
-    this.set(key, value);
-  },
-
-  /**
-   * Emits a change event for a particular key.
-   * @private
-   * @param {string} key
-   * @param {?} value
-   * @param {Observable} observed
-   */
-  emit: function (key, value, observed) {
-    var observers;
-
-    if (this._root)
-      return this._root.emit(this._path + '.' + key, value, observed);
-
-    observers = this._cb[key];
-
-    if (!observers)
-      return;
-
-    observers.forEach(function (observer) {
-      observer.call(observed, value);
-    });
-  },
-
-  /**
-   * Removes a key from the observed object, triggering all nested watchers.
-   * @private
-   * @param {string} key
-   */
-  remove: function (key) {
-    var k;
-
-    if (this._root)
-      return this._root.remove(this._path + '.' + key);
-
-    for (k in this._cb) {
-      if (this._cb.hasOwnProperty(k) &&
-        k.indexOf(key) === 0 &&
-        k !== key &&
-        this.get(k))
-        this.emit(k, null, this);
+      this._prop[key] = value;
+      this.emit(key, value, this);
     }
-  },
+  });
 
-  /**
-   * Sets another Observable object as the root for the current object.
-   * @private
-   * @param {!Observable} root
-   * @param {!string} path
-   */
-  setRoot: function (root, path) {
-    Object.defineProperty(this, '_root', {
-      /**
-       * @expose
-       * @type {Observable}
-       */
-      value: root
-    });
+  this.set(key, value);
+};
 
-    Object.defineProperty(this, '_path', {
-      /**
-       * @expose
-       * @type {string}
-       */
-      value: path
-    });
+/**
+ * Emits a change event for a particular key.
+ * @expose
+ * @private
+ * @param {string} key
+ * @param {?} value
+ * @param {Observable} observed
+ */
+Observable.prototype.emit = function (key, value, observed) {
+  var observers;
+
+  if (this._root)
+    return this._root.emit(this._path + '.' + key, value, observed);
+
+  observers = this._cb[key];
+
+  if (!observers)
+    return;
+
+  observers.forEach(function (observer) {
+    observer.call(observed, value);
+  });
+};
+
+/**
+ * Removes a key from the observed object, triggering all nested watchers.
+ * @expose
+ * @private
+ * @param {string} key
+ */
+Observable.prototype.remove = function (key) {
+  var k;
+
+  if (this._root)
+    return this._root.remove(this._path + '.' + key);
+
+  for (k in this._cb) {
+    if (this._cb.hasOwnProperty(k) &&
+      k.indexOf(key) === 0 &&
+      k !== key &&
+      this.get(k))
+      this.emit(k, null, this);
   }
 };
 
@@ -333,12 +311,219 @@ Observable.resolve = function (observed, key, value) {
     if (observed[pathname] instanceof Observable)
       return observed[pathname].set(value);
 
-    if (!(value instanceof Observable || value instanceof Array))
+    if (!(value instanceof Observable) && !(value instanceof Array))
       value = new Observable(value, root, fullpath);
   }
 
   observed[pathname] = value;
 };
+
+
+/**
+ * An Observable Array implementation. Requires a root Observable object.
+ * @extends {Array}
+ * @constructor
+ * @param {?Array.<*>} data
+ * @param {Observable} root
+ * @param {string} path
+ */
+function ObservableArray (data, root, path) {
+  var array = this;
+
+  /**
+   * @type {number}
+   */
+  this.length = 0;
+
+  Array.call(this);
+
+  Object.defineProperty(this, 'emit', {
+    /**
+     * @expose
+     * @param {boolean=} length If true, emit a length change instead of value change.
+     * @this {ObservableArray}
+     */
+    value: function (length) {
+      if (length === true)
+        return root.emit(path + '.length', this.length, root);
+
+      return root.emit(path, this, root);
+    }
+  });
+
+  if (data)
+    Array.prototype.push.apply(this, data);
+}
+
+ObservableArray.prototype = Object.create(Array.prototype);
+Object.defineProperty(ObservableArray.prototype, 'constructor', {
+  /**
+   * @expose
+   * @type {function(new: ObservableArray, ?Array.<*>, Observable, string)}
+   */
+  value: ObservableArray
+});
+
+/**
+ * @expose
+ * @param {boolean=} length If true, emit a length change instead of value change.
+ */
+ObservableArray.prototype.emit;
+
+/**
+ * @override
+ * @param {...[*]} item
+ * @return {number}
+ */
+ObservableArray.prototype.push;
+
+Object.defineProperty(ObservableArray.prototype, 'push', {
+  /**
+   * @expose
+   * @param {...[*]} item
+   * @return {number}
+   * @this {ObservableArray}
+   */
+  value: function (item) {
+    var length = this.length;
+
+    Array.prototype.push.apply(this, arguments[1] ? arguments : [item]);
+
+    this.emit();
+
+    if (this.length !== length)
+      this.emit(true);
+
+    return this.length;
+  }
+});
+
+/**
+ * @override
+ * @param {...[*]} item
+ * @return {number}
+ */
+ObservableArray.prototype.unshift;
+
+Object.defineProperty(ObservableArray.prototype, 'unshift', {
+  /**
+   * @expose
+   * @param {...[*]} item
+   * @return {number}
+   * @this {ObservableArray}
+   */
+  value: function (item) {
+    var length = this.length;
+
+    Array.prototype.unshift.apply(this, arguments[1] ? arguments : [item]);
+
+    this.emit();
+
+    if (this.length !== length)
+      this.emit(true);
+
+    return this.length;
+  }
+});
+
+/**
+ * @override
+ * @return {?}
+ */
+ObservableArray.prototype.pop;
+
+Object.defineProperty(ObservableArray.prototype, 'pop', {
+  /**
+   * @expose
+   * @return {?}
+   * @this {ObservableArray}
+   */
+  value: function () {
+    var length = this.length,
+      item = Array.prototype.pop.call(this);
+
+    this.emit();
+
+    if (this.length !== length)
+      this.emit(true);
+
+    return item;
+  }
+});
+
+/**
+ * @override
+ * @return {?}
+ */
+ObservableArray.prototype.shift;
+
+Object.defineProperty(ObservableArray.prototype, 'shift', {
+  /**
+   * @expose
+   * @return {?}
+   * @this {ObservableArray}
+   */
+  value: function () {
+    var length = this.length,
+      item = Array.prototype.shift.call(this);
+
+    this.emit();
+
+    if (this.length !== length)
+      this.emit(true);
+
+    return item;
+  }
+});
+
+/**
+ * @override
+ * @param {*=} index
+ * @param {*=} remove
+ * @param {...[*]} item
+ * @return {Array.<*>}
+ */
+ObservableArray.prototype.splice;
+
+Object.defineProperty(ObservableArray.prototype, 'splice', {
+  /**
+   * @expose
+   * @param {*=} index
+   * @param {*=} remove
+   * @param {...[*]} item
+   * @return {Array.<*>}
+   * @this {ObservableArray}
+   */
+  value: function (index, remove, item) {
+    var length = this.length;
+
+    item = Array.prototype.splice.apply(this, arguments);
+
+    this.emit();
+
+    if (this.length !== length)
+      this.emit(true);
+
+    return item;
+  }
+});
+
+/**
+ * @override
+ * @return {Array.<*>}
+ */
+ObservableArray.prototype.toJSON;
+
+Object.defineProperty(ObservableArray.prototype, 'toJSON', {
+  /**
+   * @return {Array.<*>}
+   * @this {ObservableArray}
+   */
+  value: function () {
+    return this.slice();
+  }
+});
+
 
 /**
  * Return a new Observable object.
